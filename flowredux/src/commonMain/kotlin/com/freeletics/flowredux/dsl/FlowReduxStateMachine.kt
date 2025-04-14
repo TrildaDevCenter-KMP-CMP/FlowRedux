@@ -48,6 +48,33 @@ public abstract class FlowReduxStateMachine<S : Any, A : Any>(
             }
     }
 
+    protected fun spec2(specBlock: FlowReduxStoreBuilder2<S, A>.() -> Unit) {
+        if (::outputState.isInitialized) {
+            throw IllegalStateException(
+                "State machine spec has already been set. " +
+                    "It's only allowed to call spec {...} once.",
+            )
+        }
+
+        val sideEffectBuilders = FlowReduxStoreBuilder2<S, A>().apply(specBlock).sideEffectBuilders
+
+        outputState = inputActions
+            .receiveAsFlow()
+            .reduxStore(initialStateSupplier, sideEffectBuilders)
+            .onStart {
+                if (activeFlowCounter.incrementAndGet() > 1) {
+                    throw IllegalStateException(
+                        "Can not collect state more than once at the same time. Make sure the" +
+                            "previous collection is cancelled before starting a new one. " +
+                            "Collecting state in parallel would lead to subtle bugs.",
+                    )
+                }
+            }
+            .onCompletion {
+                activeFlowCounter.decrementAndGet()
+            }
+    }
+
     override val state: Flow<S>
         get() {
             checkSpecBlockSet()

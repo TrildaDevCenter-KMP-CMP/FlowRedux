@@ -5,6 +5,14 @@ package com.freeletics.flowredux.dsl
 import kotlin.jvm.JvmName
 
 /**
+ * The [snapshot] property can be used to access the current state at the time the action
+ * or event happened. Note that it might be outdated by the time the code runs.
+ */
+public open class ReadOnlyState<InputState : Any>(
+    public val snapshot: InputState,
+)
+
+/**
  * Allows to create [ChangedState] objects to change the state as a result of DSL
  * methods like [InStateBuilderBlock.on] or  [InStateBuilderBlock.onEnter].
  *
@@ -13,8 +21,8 @@ import kotlin.jvm.JvmName
  * never be used within [mutate] or to create an object that is passed to [override]
  */
 public class State<InputState : Any>(
-    public val snapshot: InputState,
-) {
+    snapshot: InputState,
+) : ReadOnlyState<InputState>(snapshot) {
     /**
      * Use this function if you want to "mutate" the current state by copying the old state
      * and modify some properties in the copy of the new state. A common use case is to call
